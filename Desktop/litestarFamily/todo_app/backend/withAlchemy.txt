@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+from typing import Optional
+
+from litestar import Litestar, get, post, put, delete
+from litestar.di import Provide
+from litestar.exceptions import NotFoundException
+from pydantic import BaseModel
+
+from sqlalchemy import Boolean, Integer, String, select, create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker, Session
+
+
+# 1) SQLAlchemy
+DATABASE_URL = "sqlite:///todo.db"
+
+engine = create_engine(DATABASE_URL, future=True, echo=False)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class TodoItem(Base):
+    __tablename__ = "todo_table"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    status: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+Base.metadata.create_all(bind=engine)
+
+
+def db_sessions() -> Session:
+    db = SessionLocal()
+    try:
+        return db
+    finally:
+        db.close()
+
+
+# 2) Pydantic Schemas
+class TodoCreate(BaseModel):
+    title: str
+    status: bool = False
+
+
+class TodoUpdate(BaseModel):
+    title: Optional[str] = None
+    status: Optional[bool] = None
+
+
+class TodoOutput(BaseModel):
+    id: int
+    title: str
+    status: bool
+
+    @classmethod
+    def from_model(cls, t: TodoItem) -> "TodoOutput":
+        return cls(id=t.id, title=t.title, status=t.status)
+
+
+# 3) Routes
+@get("/")
+async def get_list(db: Session, status: bool | None = None) -> list[TodoOutput]:
+    stmt = select(TodoItem)
+    if status is not None:
+        stmt = stmt.where(TodoItem.status == status)
+
+    rows = db.execute(stmt).scalars().all()
+    return [TodoOutput.from_model(t) for t in rows]
+
+
+@post("/")
+async def post_list(db: Session, data: TodoCreate) -> TodoOutput:
+    todo = TodoItem(title=data.title, status=data.status)
+
+    db.add(todo)  
+    db.commit()    
+    db.refresh(todo) 
+
+    return TodoOutput.from_model(todo)
+
+
+@put("/{item_id:int}")
+async def update_list(item_id: int, db: Session, data: TodoUpdate) -> TodoOutput:
+    todo = db.get(TodoItem, item_id)
+    if not todo:
+        raise NotFoundException(detail=f"todo id {item_id} not found")
+
+    if data.title is not None:
+        todo.title = data.title
+    if data.status is not None:
+        todo.status = data.status
+
+    db.commit()     
+    db.refresh(todo) 
+
+    return TodoOutput.from_model(todo)
+
+
+@delete("/{item_id:int}")
+async def delete_list(item_id: int, db: Session) -> dict:
+    todo = db.get(TodoItem, item_id)
+    if not todo:
+        raise NotFoundException(detail=f"todo id {item_id} not found")
+
+    db.delete(todo)
+    db.commit()
+    return {"deleted": True, "id": item_id}
+
+
+# 4) App
+app = Litestar(
+    route_handlers=[get_list, post_list, update_list, delete_list],
+    dependencies={"db": Provide(db_sessions, sync_to_thread=True)},
+)
