@@ -8,8 +8,8 @@ import { PUBLIC_API_URL } from '$env/static/public';
 export async function getTodos(status?: boolean): Promise<Todo[]> {
     const url =
     status === undefined
-      ?  `${PUBLIC_API_URL}/`
-      : `${PUBLIC_API_URL}/?status=${status}`;
+      ?  `${PUBLIC_API_URL}/todo`
+      : `${PUBLIC_API_URL}/todo?status=${status}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to load todos");
@@ -18,7 +18,7 @@ export async function getTodos(status?: boolean): Promise<Todo[]> {
 
 //create
 export async function createTodo(data: TodoCreate): Promise<Todo> {
-  const res = await fetch(`${PUBLIC_API_URL}/`, {
+  const res = await fetch(`${PUBLIC_API_URL}/todo`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status: false, ...data })
@@ -29,7 +29,7 @@ export async function createTodo(data: TodoCreate): Promise<Todo> {
 
 //put(checkbox)
 export async function checkboxTodo(id: number, data: TodoUpdate): Promise<Todo> {
-  const res = await fetch (`${PUBLIC_API_URL}/${id}`, {
+  const res = await fetch (`${PUBLIC_API_URL}/todo/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
@@ -39,7 +39,7 @@ export async function checkboxTodo(id: number, data: TodoUpdate): Promise<Todo> 
 }
 //put(update)
 export function updateTodo(id: number, payload: { title: string }) {
-  return fetch(`${PUBLIC_API_URL}/${id}`, {
+  return fetch(`${PUBLIC_API_URL}/todo/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -48,7 +48,7 @@ export function updateTodo(id: number, payload: { title: string }) {
 
 //delete
 export async function deleteTodo(id: number): Promise<void> {
-  const res = await fetch(`${PUBLIC_API_URL}/${id}`, { method: "DELETE" });
+  const res = await fetch(`${PUBLIC_API_URL}/todo/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete todo");
   
 }

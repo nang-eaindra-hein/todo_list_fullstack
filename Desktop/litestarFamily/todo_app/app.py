@@ -12,8 +12,13 @@ from litestar.middleware.cors import CORSMiddleware
 from litestar.config.cors import CORSConfig
 from litestar.middleware import DefineMiddleware
 import os
+from litestar import Controller, get, post, put, delete
+from dotenv import load_dotenv
+
+load_dotenv()
 
 CLIENT_URL = os.getenv("CLIENT_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 cors_config = CORSConfig(
     allow_origins=[CLIENT_URL],
@@ -22,10 +27,7 @@ cors_config = CORSConfig(
     allow_credentials=False,
 )
 
-
-# 1.sqlalchemy
-DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/todo"
-
+# 1.sqlalchey
 engine = create_engine(DATABASE_URL, future=True, echo=False)
 sessionLocal = sessionmaker(future=True, autoflush=False, autocommit=False, bind=engine)
 
@@ -81,57 +83,59 @@ class todo_output(BaseModel):
 
 
 # 3.routes
+class TodoController(Controller):
+    path = "/todo"
 
+    @get(path="/")
+    async def get_list(
+        self, db: Session, status: bool | None = None
+    ) -> list[todo_output]:
+        get = select(todo_items)
+        if status is not None:
+            get = get.where(todo_items.status == status)
 
-@get("/")
-async def get_list(db: Session, status: bool | None = None) -> list[todo_output]:
-    get = select(todo_items)
-    if status is not None:
-        get = get.where(todo_items.status == status)
+        rows = db.execute(get).scalars().all()
+        return [todo_output.classMethod_todo(t) for t in rows]
 
-    rows = db.execute(get).scalars().all()
-    return [todo_output.classMethod_todo(t) for t in rows]
+    @post(path="/")
+    async def post_list(self, db: Session, data: todo_create) -> todo_output:
+        todo = todo_items(title=data.title, status=data.status)
+        db.add(todo)
+        db.commit()
+        db.refresh(todo)
+        return todo_output.classMethod_todo(todo)
 
+    @put(path="/{item_id:int}")
+    async def update_list(
+        self, item_id: int, db: Session, data: todo_update
+    ) -> todo_output:
+        todo = db.get(todo_items, item_id)
+        if not todo:
+            raise NotFoundException(detail=f"todo id {item_id} not found")
 
-@post("/")
-async def post_list(db: Session, data: todo_create) -> todo_output:
-    todo = todo_items(title=data.title, status=data.status)
-    db.add(todo)
-    db.commit()
-    db.refresh(todo)
-    return todo_output.classMethod_todo(todo)
+        if data.title is not None:
+            todo.title = data.title
 
+        if data.status is not None:
+            todo.status = data.status
+        db.commit()
+        db.refresh(todo)
+        return todo_output.classMethod_todo(todo)
 
-@put("/{item_id:int}")
-async def update_list(item_id: int, db: Session, data: todo_update) -> todo_output:
-    todo = db.get(todo_items, item_id)
-    if not todo:
-        raise NotFoundException(detail=f"todo id {item_id} not found")
+    @delete(path="/{item_id:int}", status_code=204)
+    async def delete_list(self, item_id: int, db: Session) -> None:
+        todo = db.get(todo_items, item_id)
 
-    if data.title is not None:
-        todo.title = data.title
-
-    if data.status is not None:
-        todo.status = data.status
-    db.commit()
-    db.refresh(todo)
-    return todo_output.classMethod_todo(todo)
-
-
-@delete("/{item_id:int}", status_code=204)
-async def delete_list(item_id: int, db: Session) -> None:
-    todo = db.get(todo_items, item_id)
-
-    if not todo:
-        raise NotFoundException(detail=f"todo id {item_id} not found")
-    db.delete(todo)
-    db.commit()
-    return None
+        if not todo:
+            raise NotFoundException(detail=f"todo id {item_id} not found")
+        db.delete(todo)
+        db.commit()
+        return None
 
 
 # 4.app
 app = Litestar(
-    route_handlers=[get_list, post_list, update_list, delete_list],
+    route_handlers=[TodoController],
     dependencies={"db": Provide(db_sessions, sync_to_thread=True)},
     middleware=[DefineMiddleware(CORSMiddleware, config=cors_config)],
 )
