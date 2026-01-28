@@ -24,7 +24,7 @@ cors_config = CORSConfig(
 
 
 # 1.sqlalchemy
-DATABASE_URL = "sqlite:///todo.db"
+DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/todo"
 
 engine = create_engine(DATABASE_URL, future=True, echo=False)
 sessionLocal = sessionmaker(future=True, autoflush=False, autocommit=False, bind=engine)
