@@ -1,0 +1,58 @@
+from dataclasses import dataclass
+from litestar import Litestar, get, post, put, delete
+from litestar.exceptions import NotFoundException
+
+# 2.Pydantic schemas
+@dataclass
+class todo_items:
+    title: str
+    status: bool
+
+
+todo_list: list[todo_items] = [
+    todo_items(title="todo1", status=False),
+    todo_items(title="todo2", status=False),
+    todo_items(title="todo3", status=True),
+]
+
+
+def put_list(name) -> todo_items:
+    for item in todo_list:
+        if item.title == name:
+            return item
+    raise NotFoundException(detail=f"error {name!r}")
+
+
+# 3.routes
+
+
+@get("/")
+async def get_list(status: bool | None = None) -> list[todo_items]:
+    if status is None:
+        return todo_list
+    return [item for item in todo_list if item.status == status]
+
+
+@post("/")
+async def post_list(data: todo_items) -> list[todo_items]:
+    todo_list.append(data)
+    return todo_list
+
+
+@put("/{item_title:str}")
+async def update_list(item_title: str, data: todo_items) -> list[todo_items]:
+    todo = put_list(item_title)
+    todo.title = data.title
+    todo.status = data.status
+    return todo_list
+
+
+@delete("/{item_title:str}")
+async def delete_list(item_title: str) -> list[todo_items]:
+    todo = put_list(item_title)
+    todo_list.remove(todo)
+    return todo_list
+
+
+# 4.app
+app = Litestar([get_list, post_list, update_list, delete_list])
