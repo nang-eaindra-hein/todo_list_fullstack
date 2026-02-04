@@ -16,3 +16,4 @@ curl -X POST http://127.0.0.1:8000/ \
   curl -X DELETE http://127.0.0.1:8000/1
 
 """
+run litestar --app backend.app:app run

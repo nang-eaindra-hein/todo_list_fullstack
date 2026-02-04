@@ -1,4 +1,4 @@
-export type Note = { id: number; des: string };
+export type Note = { id: number; des: string,created_at:any,updated_at:any};
 export type NoteCreate = { des: string};
 
 import { PUBLIC_API_URL } from '$env/static/public';

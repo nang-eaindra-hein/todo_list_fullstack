@@ -8,10 +8,9 @@
   let notes = $state("");
   import { page } from "$app/stores";
   import { get } from "svelte/store";
-  import { SvelteDate } from "svelte/reactivity";
-  let { date, lastSavedAt }: { date: any; lastSavedAt: any } = $props();
+  import { toast, Toaster } from "svelte-french-toast";
   const todoId = Number(get(page).params.todoId);
-
+  let stamp: any = $state();
   const qc = useQueryClient();
   //create mutation
 
@@ -20,6 +19,7 @@
       createNote(todoId, { des }),
     onSuccess: async () => {
       notes = "";
+
       await qc.invalidateQueries({ queryKey: ["Notes"] });
     },
   }));
@@ -29,6 +29,7 @@
     const des = notes.trim();
     if (!des) return;
     createMut.mutate({ todoId, des });
+    toast.success("Put Note Successfully!");
   }
   //back btn
   function goBack() {
@@ -65,13 +66,13 @@
     <Button
       onclick={() => {
         addNote(todoId);
-        date = new SvelteDate();
-        lastSavedAt = new Date();
+        stamp(todoId);
       }}
       variant="Green">put</Button
     >
   </div>
 
   <!--note lists-->
-  <NoteList {todoId} {qc} />
+  <NoteList {todoId} {qc} bind:stamp />
 </div>
+<Toaster />

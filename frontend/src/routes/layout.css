@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
-
-body{
-    @apply bg-amber-100
+@variant dark (&:where(.dark, .dark *));
+body {
+    @apply bg-amber-100 text-black dark:bg-blue-950 dark:text-white;
 }

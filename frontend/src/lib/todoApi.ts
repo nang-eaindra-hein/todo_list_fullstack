@@ -1,4 +1,4 @@
-export type Todo = { id: number; title: string; status: boolean };
+export type Todo = { id: number; title: string; status: boolean};
 export type TodoCreate = { title: string; status?: boolean };
 export type TodoUpdate = { title?: string; status?: boolean };
 import { PUBLIC_API_URL } from '$env/static/public';
@@ -13,7 +13,9 @@ export async function getTodos(status?: boolean): Promise<Todo[]> {
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to load todos");
-  return res.json();
+  const todos = await res.json();
+  return todos;
+  
 }
 
 //create
@@ -21,10 +23,14 @@ export async function createTodo(data: TodoCreate): Promise<Todo> {
   const res = await fetch(`${PUBLIC_API_URL}/todo`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status: false, ...data })
+    body: JSON.stringify({   title: data.title,
+      status: data.status ?? false,
+      })
   });
   if (!res.ok) throw new Error("Failed to create todo");
-  return res.json();
+  
+  const todo = await res.json();
+  return todo;
 }
 
 //put(checkbox)

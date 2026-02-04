@@ -4,30 +4,28 @@
     createMutation,
     useQueryClient,
   } from "@tanstack/svelte-query";
+  import { toast, Toaster } from "svelte-french-toast";
 
-  import {
-    getTodos,
-    checkboxTodo,
-    updateTodo,
-    deleteTodo,
-    createTodo,
-    type Todo,
-  } from "$lib/todoApi";
+  import { getTodos, createTodo, type Todo } from "$lib/todoApi";
   import Lists from "$lib/components/Lists.svelte";
   import Button from "$lib/components/Button.svelte";
+  import Dark from "$lib/components/Dark.svelte";
 
-  const qc = useQueryClient();
-
-  let filter = $state<"filter" | "all" | "active" | "done">("filter");
   let newTitle = $state("");
+  const qc = useQueryClient();
+  //filter
+  let filter = $state<"Filter" | "All" | "Checked" | "Unchecked">("Filter");
+
   const statusParam = $derived(
-    filter === "filter" ? undefined : filter === "done"
+    filter === "Checked" ? true : filter === "Unchecked" ? false : undefined
   );
+
   //add func
   function add() {
     const title = newTitle.trim();
     if (!title) return;
     createMut.mutate(title);
+    toast.success("Added todo list!");
   }
   //get mutation
   const todosQuery = createQuery<Todo[]>(() => ({
@@ -47,7 +45,9 @@
 </script>
 
 <div class=" bg-amber-100 h-screen">
-  <div class="flex pb-5 justify-center text-xl font-bold items-center">
+  <div
+    class="underline text-purple-900 flex pb-5 justify-center text-xl font-bold items-center"
+  >
     Todo List
   </div>
   <!--refresh-->
@@ -58,7 +58,7 @@
   >
     {todosQuery.isFetching ? "Refreshing..." : "Refresh"}
   </Button>
-
+  <Dark />
   <!--create-->
   <div class="flex gap-2 justify-center items-center">
     <div>Create a list</div>
@@ -74,34 +74,17 @@
   </div>
 
   <!--dropdown filter-->
-  <select class="border rounded-md m-5">
-    <div class="flex gap-2">
-      <option
-        class="cursor-not-allowed"
-        onclick={() => (filter = "filter")}
-        disabled={filter === "filter"}
-      >
-        filter
-      </option>
-      <option
-        class="cursor-pointer"
-        onclick={() => (filter = "all")}
-        disabled={filter === "all"}>All</option
-      >
 
-      <option
-        class="cursor-pointer"
-        onclick={() => (filter = "active")}
-        disabled={filter === "active"}>Active</option
-      >
-      <option
-        class="cursor-pointer"
-        onclick={() => (filter = "done")}
-        disabled={filter === "done"}>Done</option
-      >
-    </div>
+  <select
+    bind:value={filter}
+    class="rounded shadow-md texts-sm ml-5 cursor-pointer bg-amber-50"
+  >
+    <option value="Filter" selected disabled>Filter</option>
+    <option value="All">All</option>
+    <option value="Checked">Checked</option>
+    <option value="Unchecked">Unchecked</option>
   </select>
-
   <!--lists-->
   <Lists {qc} {todosQuery} />
 </div>
+<Toaster />

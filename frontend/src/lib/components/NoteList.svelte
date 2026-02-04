@@ -1,32 +1,17 @@
 <script lang="ts">
   import Button from "./Button.svelte";
-  import { SvelteDate } from "svelte/reactivity";
+
   import { createMutation, createQuery } from "@tanstack/svelte-query";
-  let { todoId, qc }: { todoId: number; qc: any } = $props();
+  let {
+    todoId,
+    qc,
+    stamp = $bindable(),
+  }: { todoId: number; qc: any; stamp: any } = $props();
   import { getNotes, updateNote, deleteNote, type Note } from "$lib/noteApi";
   let editDes = $state("");
   let editingId = $state();
-
+  import { toast, Toaster } from "svelte-french-toast";
   //date time
-  let lastSavedAt = $state<Date | null>(null);
-  let date = $state(new SvelteDate());
-  let currentDate = $derived(
-    date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-  );
-  let currentHour = $derived(
-    date.toLocaleTimeString(undefined, {
-      hour: "numeric",
-    })
-  );
-  let currentMin = $derived(
-    date.toLocaleTimeString(undefined, {
-      minute: "numeric",
-    })
-  );
 
   //get mutation
   const notesQuery = createQuery<Note[]>(() => ({
@@ -90,7 +75,11 @@
         {#if editingId !== note.id}
           <div class="flex justify-end gap-2">
             <div class="pr-5 text-nowrap">
-              Noted: {currentDate}, {currentHour}:{currentMin}
+              {#if !editMut}
+                Created: {note.created_at}
+              {:else}
+                Updated: {note.updated_at}
+              {/if}
             </div>
             <Button
               variant="Blue"
@@ -102,7 +91,10 @@
             </Button>
 
             <Button
-              onclick={() => deleteMut.mutate({ id: todoId, note_id: note.id })}
+              onclick={() => {
+                deleteMut.mutate({ id: todoId, note_id: note.id });
+                toast.success("Deleted Note list!");
+              }}
               disabled={deleteMut.isPending}
               variant="Red"
             >
@@ -114,14 +106,12 @@
             <!--save-->
             <Button
               onclick={() => {
-                date = new SvelteDate();
-                lastSavedAt = new Date();
-
                 editMut.mutate({
                   todoId: todoId,
                   noteId: note.id,
                   des: editDes,
                 });
+                toast.success("Save Editing Note!");
               }}
               disabled={editMut.isPending || !editDes.trim()}
               variant="Green">Save</Button
@@ -136,3 +126,4 @@
     {/each}
   </ul>
 {/if}
+<Toaster />
