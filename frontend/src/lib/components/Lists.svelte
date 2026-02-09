@@ -38,36 +38,6 @@
       await qc.invalidateQueries({ queryKey: ["todos"] });
     },
   }));
-  //draggable
-  let mouseYCoordinate = null;
-  let distanceTopGrabbedVsPointer = null;
-
-  let draggingItem = null;
-  let draggingItemId = null;
-  let draggingItemIndex: any = null;
-
-  let hoveredItemIndex = null;
-
-  if (mouseYCoordinate == null || mouseYCoordinate == 0) {
-    // showGhost = false;
-  }
-
-  if (
-    draggingItemIndex != null &&
-    hoveredItemIndex != null &&
-    draggingItemIndex != hoveredItemIndex
-  ) {
-    // swap items
-    [todosQuery.data[draggingItemIndex], todosQuery.data[hoveredItemIndex]] = [
-      todosQuery.data[hoveredItemIndex],
-      todosQuery.data[draggingItemIndex],
-    ];
-
-    // balance
-    draggingItemIndex = hoveredItemIndex;
-  }
-
-  let container = null;
 </script>
 
 {#if todosQuery.isError}
@@ -79,7 +49,7 @@
 {:else}
   <ul>
     {#each todosQuery.data ?? [] as list (list.id)}
-      <li class="expandable flex justify-between items-center p-5 border-b">
+      <li class=" flex justify-between items-center p-5 border-b">
         <div class="flex gap-5 items-center">
           <input
             class="w-5 h-5"
@@ -123,10 +93,8 @@
                 >
               {/if}</a
             >
-            <!--draggable-->
-            <Button variant="Blue" class="draggable">Drag</Button>
-            <!--edit btn-->
 
+            <!--edit btn-->
             <Button
               variant="Blue"
               onclick={() => {
